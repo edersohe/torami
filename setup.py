@@ -19,10 +19,10 @@ setup(
     # metadata for upload to PyPI
     author = "Eder Sosa",
     author_email = "eder.sohe@gmail.com",
-    description = "This is a short implementation of of Asterisk Manager Interface with tornado framework",
+    description = "This is a short implementation of of Asterisk Manager Interface with Tornado framework",
     license = "MIT",
     keywords = "tornado asterisk manager ami",
-    url = "http://github.com/edersohe/torami",   # project home page, if any
+    url = "http://github.com/edersohe/torami.git",   # project home page, if any
 
     # could also include long_description, download_url, classifiers, etc.
 )
