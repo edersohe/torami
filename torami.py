@@ -6,7 +6,6 @@ import socket
 import json
 import re
 from uuid import uuid1
-import actions
 
 EOL = '\r\n\r\n'
 
@@ -117,33 +116,32 @@ class Manager(iostream.IOStream):
                         Event(self.aid, item))
                     del self._responses[item['ActionID']]
 
-    def action(self, *args, **kwargs):
-        """This generic method execute streams from ACTIONS dictionary
-        and replace dynamic and positional parameters (%s) and add
-        action_id when detect response of the action_id execute callback if
-        this is set"""
+    def action(self, name, **kwargs):
+        """This generic method execute actions and add action_id when detect
+        response of the action_id execute callback if this is set"""
+
+        callback = None
+        actionid = name + '-' + str(uuid1())
+
+        if 'callback' in kwargs:
+            callback = kwargs['callback']
+            del kwargs['callback']
 
         if 'actionid' in kwargs:
-            actionid = args[0] + '-' + kwargs['actionid']
-        else:
-            actionid = args[0] + '-' + str(uuid1())
+            actionid = kwargs['actionid']
+            del kwargs['actionid']
 
-        if 'template' in kwargs:
-            template = kwargs['template']
-        else:
-            template = getattr(actions, args[0].upper())
+        cmd = 'action: ' + name + '\r\n'
 
-        if template != '':
-            action = 'action: %s\r\n%s\r\nactionid: %s\r\n\r\n' % (
-                         args[0], template, actionid)
-        else:
-            action = 'action: %s\r\nactionid: %s\r\n\r\n' % (
-                         args[0], actionid)
+        for k, v in kwargs.iteritems():
+            cmd += k + ': ' + v + '\r\n'
 
-        self.write(action % args[1:])
+        cmd += 'actionid: ' + actionid + EOL
 
-        if 'callback' in kwargs and kwargs['callback'] is not None:
-            self._responses[actionid] = kwargs['callback']
+        self.write(cmd)
+
+        if callback is not None:
+            self._responses[actionid] = callback
 
         return actionid
 
