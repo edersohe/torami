@@ -92,15 +92,21 @@ class Manager(iostream.IOStream):
         manipulation of streams"""
 
         data = data.split(EOL)
-        while data[-1] == '':
-            data.pop()
-        data = json.dumps(data)
-        data = data.replace('", "', '"}, {"')
-        data = data.replace('["', '{"')
-        data = data.replace('"]', '"}')
-        data = data.replace('\\r\\n', '", "')
-        data = data.replace(': ', '": "')
-        return json.loads('[' + data + ']')
+        res = []
+
+        for i in range(0, len(data)):
+            if data[i].strip() in ('', None, [], '\r\n'):
+                continue
+            raw_data = data[i]
+            data[i] = json.dumps(data[i])
+            data[i] = data[i].replace('\\r\\n', '", "')
+            data[i] = data[i].replace(': ', '": "')
+            try:
+                res.append(json.loads('{' + data[i] + '}'))
+            except:
+                res.append({ 'RawData': raw_data })
+
+        return res
 
     def _filter(self, data):
         """Filter dictionary event if have ActionID or Event filter
