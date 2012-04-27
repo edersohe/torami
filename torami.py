@@ -63,13 +63,15 @@ class Manager(iostream.IOStream):
         """Initialize connecction to asterisk manager"""
 
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        sck.connect((address, port))
         self._responses = {}
         self._events = events if events  else {}
-        self._aid = sck.fileno()
         self._verbose = verbose
 
         iostream.IOStream.__init__(self, sck, **kwargs)
+        self.connect((address, port), self._on_connect)
+        self._aid = self.socket.fileno()
+
+    def _on_connect(self):
         self.read_until(EOL, self._setup)
 
     @property
@@ -104,7 +106,7 @@ class Manager(iostream.IOStream):
             try:
                 res.append(json.loads('{' + data[i] + '}'))
             except:
-                res.append({ 'RawData': raw_data })
+                res.append({'RawData': raw_data})
 
         return res
 
