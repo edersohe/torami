@@ -9,7 +9,6 @@ from uuid import uuid1
 
 EOL = '\r\n\r\n'
 
-
 class Event(object):
     """This class help to create python objects and convert to
     dictionary or json object for best manipulation from event dict"""
@@ -59,14 +58,13 @@ class Manager(iostream.IOStream):
     manager and hadle streams, reponses, execute actions and execute
     callbacks"""
 
-    def __init__(self, address, port, events=None, verbose=0, **kwargs):
+    def __init__(self, address, port, events=None, debug=False, **kwargs):
         """Initialize connecction to asterisk manager"""
 
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._responses = {}
         self._events = events if events  else {}
-        self._verbose = verbose
-
+        self._debug = debug
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
         self._aid = self.socket.fileno()
@@ -88,8 +86,7 @@ class Manager(iostream.IOStream):
         self._filter(self._transform(data))
         self.read_until(EOL, self._read_events)
 
-    @staticmethod
-    def _transform(data):
+    def _transform(self, data):
         """Transform stream strings in dictionary python for best
         manipulation of streams"""
 
@@ -108,6 +105,8 @@ class Manager(iostream.IOStream):
             except:
                 res.append({'RawData': raw_data})
 
+        if self._debug:
+            print 'After transform: \r\n\r\n', res, '\r\n'
         return res
 
     def _filter(self, data):
@@ -146,14 +145,17 @@ class Manager(iostream.IOStream):
 
         cmd += 'actionid: ' + actionid + EOL
 
-        self.write(cmd)
-
         if callback is not None:
             self._responses[actionid] = callback
 
+        self.write(cmd)
+
+        if self._debug:
+            print 'Command to execute:\r\n\r\n', cmd[:-2]
+
         return actionid
 
-    def _read_events(self, data):
+    def _read_events(self, data=""):
         """Intermediate method is calling after setup and recursive method"""
 
         self._filter(self._transform(data))
@@ -169,12 +171,12 @@ class Collection(object):
 
         self._manager = {}
 
-    def add(self, address, port, events=None, verbose=0, **kwargs):
+    def add(self, address, port, events=None, debug=False, **kwargs):
         """Add manager to collection"""
 
         if not events:
             events = {}
-        tmp = Manager(address, port, events, verbose, **kwargs)
+        tmp = Manager(address, port, events, debug, **kwargs)
         self._manager[tmp.aid] = tmp
         return tmp.aid
 
