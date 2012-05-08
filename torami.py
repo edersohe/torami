@@ -10,6 +10,7 @@ import re
 
 EOL = '\r\n\r\n'
 
+
 def transform(data):
     """Transform stream strings in dictionary python for best
     manipulation of streams"""
@@ -30,6 +31,7 @@ def transform(data):
             res.append({'RawData': raw_data})
 
     return res
+
 
 class Event(object):
     """This class help to create python objects and convert to
@@ -109,7 +111,6 @@ class Manager(iostream.IOStream):
         data = data[27:]
         self._filter(self._transform(data))
         self.read_until(EOL, self._read_events)
-
 
     def _transform(self, data):
 
