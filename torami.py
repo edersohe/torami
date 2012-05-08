@@ -43,12 +43,14 @@ class Event(object):
         for key in self._event:
             self._event_mapping[self._uncamel(key)] = key
 
-    def to_json(self):
+    @property
+    def json(self):
         """Convert and return events dict to json object"""
 
         return json.dumps(self._event)
 
-    def to_dict(self):
+    @property
+    def dict(self):
         """Return de originally dict"""
 
         return self._event
