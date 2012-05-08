@@ -74,7 +74,7 @@ class Event(object):
         try:
             return self._event[self._event_mapping[name]]
         except KeyError:
-            raise AttributeError, name + ' ' + self.to_json()
+            raise AttributeError, name + ' ' + self.json
 
 
 class Manager(iostream.IOStream):
