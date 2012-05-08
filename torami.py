@@ -10,6 +10,27 @@ import re
 
 EOL = '\r\n\r\n'
 
+def transform(data):
+    """Transform stream strings in dictionary python for best
+    manipulation of streams"""
+
+    data = data.split(EOL)
+    res = []
+
+    for i in range(0, len(data)):
+        if data[i].strip() in ('', None, [], '\r\n'):
+            continue
+        raw_data = data[i]
+        data[i] = json.dumps(data[i])
+        data[i] = data[i].replace('\\r\\n', '", "')
+        data[i] = data[i].replace(': ', '": "')
+        try:
+            res.append(json.loads('{' + data[i] + '}'))
+        except:
+            res.append({'RawData': raw_data})
+
+    return res
+
 class Event(object):
     """This class help to create python objects and convert to
     dictionary or json object for best manipulation from event dict"""
@@ -87,28 +108,15 @@ class Manager(iostream.IOStream):
         self._filter(self._transform(data))
         self.read_until(EOL, self._read_events)
 
+
     def _transform(self, data):
-        """Transform stream strings in dictionary python for best
-        manipulation of streams"""
 
-        data = data.split(EOL)
-        res = []
-
-        for i in range(0, len(data)):
-            if data[i].strip() in ('', None, [], '\r\n'):
-                continue
-            raw_data = data[i]
-            data[i] = json.dumps(data[i])
-            data[i] = data[i].replace('\\r\\n', '", "')
-            data[i] = data[i].replace(': ', '": "')
-            try:
-                res.append(json.loads('{' + data[i] + '}'))
-            except:
-                res.append({'RawData': raw_data})
+        data = transform(data)
 
         if self._debug:
-            print 'After transform: \r\n\r\n', res, '\r\n'
-        return res
+            print 'After transform: \r\n\r\n', data, '\r\n'
+
+        return data
 
     def _filter(self, data):
         """Filter dictionary event if have ActionID or Event filter
