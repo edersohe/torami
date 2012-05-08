@@ -84,13 +84,22 @@ class Manager(iostream.IOStream):
     manager and hadle streams, reponses, execute actions and execute
     callbacks"""
 
-    def __init__(self, address, port, events=None, debug=False, **kwargs):
+    def __init__(self, address, port, events=None, raw_data=None,
+            debug=False, **kwargs):
         """Initialize connecction to asterisk manager"""
 
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._responses = {}
         self._events = events if events  else {}
+        self._raw_data = {}
+
+        raw_data = raw_data if raw_data else {}
+
+        for k, v in raw_data.iteritems():
+            self._raw_data[re.compile(k)] = v
+
         self._debug = debug
+
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
         self._aid = self.socket.fileno()
@@ -141,6 +150,8 @@ class Manager(iostream.IOStream):
                     self._run_callback(self._responses[actionid],
                         Event(self.aid, item))
                     del self._responses[actionid]
+            elif 'RawData' in item:
+                pass
 
     def action(self, name, **kwargs):
         """This generic method execute actions and add action_id when detect
