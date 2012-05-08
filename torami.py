@@ -6,6 +6,7 @@ import socket
 import json
 import re
 from uuid import uuid1
+import re
 
 EOL = '\r\n\r\n'
 
@@ -122,6 +123,13 @@ class Manager(iostream.IOStream):
                     self._run_callback(self._responses[item['ActionID']],
                         Event(self.aid, item))
                     del self._responses[item['ActionID']]
+            elif 'RawData' in item and 'ActionID' in item['RawData']:
+                regexp = re.compile('ActionID: [a-z0-9_-]+')
+                actionid = regexp.search(item['RawData']).group()[10:]
+                if actionid in self._responses.keys():
+                    self._run_callback(self._responses[actionid],
+                        Event(self.aid, item))
+                    del self._responses[actionid]
 
     def action(self, name, **kwargs):
         """This generic method execute actions and add action_id when detect
@@ -145,10 +153,10 @@ class Manager(iostream.IOStream):
 
         cmd += 'actionid: ' + actionid + EOL
 
+        self.write(cmd)
+
         if callback is not None:
             self._responses[actionid] = callback
-
-        self.write(cmd)
 
         if self._debug:
             print 'Command to execute:\r\n\r\n', cmd[:-2]
