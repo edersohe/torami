@@ -11,24 +11,19 @@ import re
 EOL = '\r\n\r\n'
 
 
-# def to_json(data):
-#     """Transform stream strings in dictionary python for best
-#     manipulation of streams"""
+def default_parser(data):
+    """Parse stream strings in dictionary python for best
+    manipulation of streams"""
 
-#     for i in range(0, len(data)):
-#         if data[i].strip() in ('', None, [], '\r\n'):
-#             continue
-#         raw_data = data[i]
-#         data[i] = json.dumps(data[i])
-#         data[i] = data[i].replace('\\r\\n', '", "')
-#         data[i] = data[i].replace(': ', '": "')
-#         try:
-#             res.append(json.loads('{' + data[i] + '}'))
-#         except:
-#             res.append({'RawData': raw_data})
+    try :
+        res = json.dumps(data)
+        res = res.replace('\\r\\n', '", "')
+        res = res.replace(': ', '": "')
+        res = json.loads('{' + res + '}')
+    except:
+        res = { 'RawData': data }
 
-#     print data
-#     return data
+    return res
 
 
 class Event(object):
@@ -133,30 +128,46 @@ class Manager(iostream.IOStream):
             if 'ActionID: ' in data[i]:
                 actionid = self._re_actionid.search(data[i]).group()[10:]
                 if self._responses.has_key(actionid):
-                    self._run_callback(self._responses[actionid], data[i])
-
+                    data[i] = self._parser(self._aid,
+                        self._responses[actionid], data[i])
+                    self._run_callback(self._responses[actionid]['callback'],
+                        data[i])
+                    del self._responses[actionid]
             elif 'Event: ' in data[i]:
                 event = self._re_event.search(data[i]).group()[7:]
                 if self._events.has_key(event):
-                    self._run_callback(self._events[event], data[i])
-
+                    data[i] = self._parser(self._aid, self._events[event],
+                        data[i])
+                    self._run_callback(self._events[event]['callback'],
+                        data[i])
             else:
-                for r,f in self._raw_data.iteritems():
+                for r,d in self._raw_data.iteritems():
                     s = r.search(data[i])
                     if s:
-                        self._run_callback(f, data[i])
+                        data[i] = self._parser(self._aid, d, data[i])
+                        self._run_callback(d['callback'], data[i])
                         break
 
             if self._debug:
                 print 'DEBUG:info:_filter\r\n', data[i]
                 print
 
+    def _parser(self, aid, dictionary, data):
+        if 'parser' in dictionary:
+            data = Event(aid, dictionary['parser'](data))
+        else:
+            data = Event(aid, default_parser(data))
+
+        return data
+
     def action(self, name, **kwargs):
         """This generic method execute actions and add action_id when detect
-        response of the action_id execute callback if this is set"""
+        response of the action_id execute callback if this is set and parse
+        reponse"""
 
         callback = None
         actionid = name + '-' + str(uuid1())
+        parser = None
 
         if 'callback' in kwargs:
             callback = kwargs['callback']
@@ -165,6 +176,10 @@ class Manager(iostream.IOStream):
         if 'actionid' in kwargs:
             actionid = kwargs['actionid']
             del kwargs['actionid']
+
+        if 'parser' in kwargs:
+            parser = kwargs['parser']
+            del kwargs['parser']
 
         cmd = 'action: ' + name + '\r\n'
 
@@ -176,7 +191,10 @@ class Manager(iostream.IOStream):
         self.write(cmd)
 
         if callback is not None:
-            self._responses[actionid] = callback
+            self._responses[actionid] = { 'callback': callback }
+
+        if parser is not None:
+            self._responses[actionid]['parser'] = parser
 
         if self._debug:
             print 'Command to execute:\r\n\r\n', cmd[:-2]
