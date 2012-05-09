@@ -30,25 +30,25 @@ class Event(object):
     """This class help to create python objects and convert to
     dictionary or json object for best manipulation from event dict"""
 
-    def __init__(self, aid, event):
+    def __init__(self, ami_id, dictionary):
         """Initialize asterisk events object"""
-        self._event = event
-        self._aid = aid
-        self._event_mapping = {}
-        for key in self._event:
-            self._event_mapping[self._uncamel(key)] = key
+        self._dictionary = dictionary
+        self._ami_id = ami_id
+        self._dictionary_mapping = {}
+        for key in self._dictionary:
+            self._dictionary_mapping[self._uncamel(key)] = key
 
     @property
     def json(self):
         """Convert and return events dict to json object"""
 
-        return json.dumps(self._event)
+        return json.dumps(self._dictionary)
 
     @property
     def dict(self):
         """Return de originally dict"""
 
-        return self._event
+        return self._dictionary
 
     @staticmethod
     def _uncamel(key):
@@ -60,14 +60,14 @@ class Event(object):
         return key
 
     @property
-    def aid(self):
+    def ami_id(self):
         """Return the asterisk id (file descriptor socket)"""
-        return self._aid
+        return self._ami_id
 
     def __getattr__(self, name):
         """Return the attributte from originally events dict"""
         try:
-            return self._event[self._event_mapping[name]]
+            return self._dictionary[self._dictionary_mapping[name]]
         except KeyError:
             raise AttributeError, name + ' ' + self.json
 
@@ -77,7 +77,7 @@ class Manager(iostream.IOStream):
     manager and hadle streams, reponses, execute actions and execute
     callbacks"""
 
-    def __init__(self, address, port, events=None, raw_data=None,
+    def __init__(self, ami_id, address, port, events=None, raw_data=None,
             debug=False, **kwargs):
         """Initialize connecction to asterisk manager"""
 
@@ -97,16 +97,15 @@ class Manager(iostream.IOStream):
 
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
-        self._aid = self.socket.fileno()
+        self._ami_id = ami_id
 
     def _on_connect(self):
         self.read_until(EOL, self._setup)
 
     @property
-    def aid(self):
-        """Return the asterisk id (file descriptor socket)"""
-
-        return self._aid
+    def ami_id(self):
+        """Return the asterisk name"""
+        return self._ami_id
 
     def _setup(self, data):
         """The first time that stablish connection this method is calling
@@ -128,23 +127,21 @@ class Manager(iostream.IOStream):
             if 'ActionID: ' in data[i]:
                 actionid = self._re_actionid.search(data[i]).group()[10:]
                 if self._responses.has_key(actionid):
-                    data[i] = self._parser(self._aid,
-                        self._responses[actionid], data[i])
+                    data[i] = self._parser(self._responses[actionid], data[i])
                     self._run_callback(self._responses[actionid]['callback'],
                         data[i])
                     del self._responses[actionid]
             elif 'Event: ' in data[i]:
                 event = self._re_event.search(data[i]).group()[7:]
                 if self._events.has_key(event):
-                    data[i] = self._parser(self._aid, self._events[event],
-                        data[i])
+                    data[i] = self._parser(self._events[event], data[i])
                     self._run_callback(self._events[event]['callback'],
                         data[i])
             else:
                 for r,d in self._raw_data.iteritems():
                     s = r.search(data[i])
                     if s:
-                        data[i] = self._parser(self._aid, d, data[i])
+                        data[i] = self._parser(d, data[i])
                         self._run_callback(d['callback'], data[i])
                         break
 
@@ -152,11 +149,11 @@ class Manager(iostream.IOStream):
                 print 'DEBUG:info:_filter\r\n', data[i]
                 print
 
-    def _parser(self, aid, dictionary, data):
+    def _parser(self, dictionary, data):
         if 'parser' in dictionary:
-            data = Event(aid, dictionary['parser'](data))
+            data = Event(self._ami_id, dictionary['parser'](data))
         else:
-            data = Event(aid, default_parser(data))
+            data = Event(self._ami_id, default_parser(data))
 
         return data
 
@@ -217,23 +214,23 @@ class Collection(object):
 
         self._manager = {}
 
-    def add(self, address, port, events=None, debug=False, **kwargs):
+    def add(self, ami_id, address, port, events=None, raw_data=None,
+            debug=False, **kwargs):
         """Add manager to collection"""
 
-        if not events:
-            events = {}
-        tmp = Manager(address, port, events, debug, **kwargs)
-        self._manager[tmp.aid] = tmp
-        return tmp.aid
+        tmp = Manager(ami_id, address, port, events, raw_data, debug,
+            **kwargs)
+        self._manager[tmp.ami_id] = tmp
+        return tmp.ami_id
 
-    def remove(self, aid, callback=None):
+    def remove(self, ami_id, callback=None):
         """Remove manager from collection"""
 
-        if aid in self._manager:
-            self._manager[aid].action('logoff', callback=callback)
-            del self._manager[aid]
+        if ami_id in self._manager:
+            self._manager[ami_id].action('logoff', callback=callback)
+            del self._manager[ami_id]
 
-    def get(self, aid):
+    def get(self, ami_id):
         """Get the manager by asterisk id (file descriptor socket) """
 
-        return self._manager[aid]
+        return self._manager[ami_id]
