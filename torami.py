@@ -1,7 +1,7 @@
 """The first aproach to asterisk manager"""
 
 from tornado import iostream
-#import logging
+import logging
 import socket
 import json
 import re
@@ -11,26 +11,24 @@ import re
 EOL = '\r\n\r\n'
 
 
-def transform(data):
-    """Transform stream strings in dictionary python for best
-    manipulation of streams"""
+# def to_json(data):
+#     """Transform stream strings in dictionary python for best
+#     manipulation of streams"""
 
-    data = data.split(EOL)
-    res = []
+#     for i in range(0, len(data)):
+#         if data[i].strip() in ('', None, [], '\r\n'):
+#             continue
+#         raw_data = data[i]
+#         data[i] = json.dumps(data[i])
+#         data[i] = data[i].replace('\\r\\n', '", "')
+#         data[i] = data[i].replace(': ', '": "')
+#         try:
+#             res.append(json.loads('{' + data[i] + '}'))
+#         except:
+#             res.append({'RawData': raw_data})
 
-    for i in range(0, len(data)):
-        if data[i].strip() in ('', None, [], '\r\n'):
-            continue
-        raw_data = data[i]
-        data[i] = json.dumps(data[i])
-        data[i] = data[i].replace('\\r\\n', '", "')
-        data[i] = data[i].replace(': ', '": "')
-        try:
-            res.append(json.loads('{' + data[i] + '}'))
-        except:
-            res.append({'RawData': raw_data})
-
-    return res
+#     print data
+#     return data
 
 
 class Event(object):
@@ -92,6 +90,8 @@ class Manager(iostream.IOStream):
         self._responses = {}
         self._events = events if events  else {}
         self._raw_data = {}
+        self._re_actionid = re.compile('ActionID: [a-zA-Z0-9_-]+')
+        self._re_event = re.compile('Event: [a-zA-Z0-9_-]+')
 
         raw_data = raw_data if raw_data else {}
 
@@ -118,40 +118,38 @@ class Manager(iostream.IOStream):
         for challenge messages with the asterisk manager protocol"""
 
         data = data[27:]
-        self._filter(self._transform(data))
+        self._filter(data)
         self.read_until(EOL, self._read_events)
 
-    def _transform(self, data):
-
-        data = transform(data)
-
-        if self._debug:
-            print 'After transform: \r\n\r\n', data, '\r\n'
-
-        return data
-
     def _filter(self, data):
-        """Filter dictionary event if have ActionID or Event filter
-        is initialized"""
+        """ filter events or actionids and execute callback """
 
-        for item in data:
-            if 'Event' in item and item['Event'] in self._events.keys():
-                self._run_callback(self._events[item['Event']],
-                    Event(self.aid, item))
-            elif 'Response' in item and 'ActionID' in item:
-                if item['ActionID'] in self._responses.keys():
-                    self._run_callback(self._responses[item['ActionID']],
-                        Event(self.aid, item))
-                    del self._responses[item['ActionID']]
-            elif 'RawData' in item and 'ActionID' in item['RawData']:
-                regexp = re.compile('ActionID: [a-z0-9_-]+')
-                actionid = regexp.search(item['RawData']).group()[10:]
-                if actionid in self._responses.keys():
-                    self._run_callback(self._responses[actionid],
-                        Event(self.aid, item))
-                    del self._responses[actionid]
-            elif 'RawData' in item:
-                pass
+        data = data.split(EOL)
+
+        while len(data)>0 and data[-1].strip() in ('', None, [], '\r\n'):
+            data.pop()
+
+        for i in xrange(0,len(data)):
+            if 'ActionID: ' in data[i]:
+                actionid = self._re_actionid.search(data[i]).group()[10:]
+                if self._responses.has_key(actionid):
+                    self._run_callback(self._responses[actionid], data[i])
+
+            elif 'Event: ' in data[i]:
+                event = self._re_event.search(data[i]).group()[7:]
+                if self._events.has_key(event):
+                    self._run_callback(self._events[event], data[i])
+
+            else:
+                for r,f in self._raw_data.iteritems():
+                    s = r.search(data[i])
+                    if s:
+                        self._run_callback(f, data[i])
+                        break
+
+            if self._debug:
+                print 'DEBUG:info:_filter\r\n', data[i]
+                print
 
     def action(self, name, **kwargs):
         """This generic method execute actions and add action_id when detect
@@ -188,7 +186,7 @@ class Manager(iostream.IOStream):
     def _read_events(self, data=""):
         """Intermediate method is calling after setup and recursive method"""
 
-        self._filter(self._transform(data))
+        self._filter(data)
         self.read_until(EOL, self._read_events)
 
 
