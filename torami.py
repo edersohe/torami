@@ -15,13 +15,13 @@ def default_parser(data):
     """Parse stream strings in dictionary python for best
     manipulation of streams"""
 
-    try :
+    try:
         res = json.dumps(data)
         res = res.replace('\\r\\n', '", "')
         res = res.replace(': ', '": "')
         res = json.loads('{' + res + '}')
     except:
-        res = { 'RawData': data }
+        res = {'RawData': data}
 
     return res
 
@@ -120,25 +120,25 @@ class Manager(iostream.IOStream):
 
         data = data.split(EOL)
 
-        while len(data)>0 and data[-1].strip() in ('', None, [], '\r\n'):
+        while len(data) > 0 and data[-1].strip() in ('', None, [], '\r\n'):
             data.pop()
 
-        for i in xrange(0,len(data)):
+        for i in xrange(0, len(data)):
             if 'ActionID: ' in data[i]:
                 actionid = self._re_actionid.search(data[i]).group()[10:]
-                if self._responses.has_key(actionid):
+                if actionid in self._responses:
                     data[i] = self._parser(self._responses[actionid], data[i])
                     self._run_callback(self._responses[actionid]['callback'],
                         data[i])
                     del self._responses[actionid]
             elif 'Event: ' in data[i]:
                 event = self._re_event.search(data[i]).group()[7:]
-                if self._events.has_key(event):
+                if event in self._events:
                     data[i] = self._parser(self._events[event], data[i])
                     self._run_callback(self._events[event]['callback'],
                         data[i])
             else:
-                for r,d in self._raw_data.iteritems():
+                for r, d in self._raw_data.iteritems():
                     s = r.search(data[i])
                     if s:
                         data[i] = self._parser(d, data[i])
@@ -185,10 +185,8 @@ class Manager(iostream.IOStream):
 
         cmd += 'actionid: ' + actionid + EOL
 
-        self.write(cmd)
-
         if callback is not None:
-            self._responses[actionid] = { 'callback': callback }
+            self._responses[actionid] = {'callback': callback}
 
         if parser is not None:
             self._responses[actionid]['parser'] = parser
@@ -196,6 +194,7 @@ class Manager(iostream.IOStream):
         if self._debug:
             print 'Command to execute:\r\n\r\n', cmd[:-2]
 
+        self.write(cmd)
         return actionid
 
     def _read_events(self, data=""):
@@ -220,8 +219,8 @@ class Collection(object):
 
         tmp = Manager(ami_id, address, port, events, raw_data, debug,
             **kwargs)
-        self._manager[tmp.ami_id] = tmp
-        return tmp.ami_id
+        self._manager[ami_id] = tmp
+        return ami_id
 
     def remove(self, ami_id, callback=None):
         """Remove manager from collection"""
@@ -234,3 +233,13 @@ class Collection(object):
         """Get the manager by asterisk id (file descriptor socket) """
 
         return self._manager[ami_id]
+
+    def action(self, ami_id, name, **kwargs):
+        """ Execute action for manager with ami_id """
+        return self._manager[ami_id].action(name, **kwargs)
+
+    def action_for_all(self, name, **kwargs):
+        """Execute action for all managers in collection"""
+
+        for k in self._manager.keys():
+            self._manager[k].action(name, **kwargs)
