@@ -127,22 +127,24 @@ class Manager(iostream.IOStream):
             if 'ActionID: ' in data[i]:
                 actionid = self._re_actionid.search(data[i]).group()[10:]
                 if actionid in self._responses:
-                    data[i] = self._parser(self._responses[actionid], data[i])
-                    self._run_callback(self._responses[actionid]['callback'],
+                    data[i], kwargs = self._parser(self._responses[actionid],
                         data[i])
+                    self._run_callback(self._responses[actionid]['callback'],
+                        data[i], **kwargs)
                     del self._responses[actionid]
             elif 'Event: ' in data[i]:
                 event = self._re_event.search(data[i]).group()[7:]
                 if event in self._events:
-                    data[i] = self._parser(self._events[event], data[i])
-                    self._run_callback(self._events[event]['callback'],
+                    data[i], kwargs = self._parser(self._events[event],
                         data[i])
+                    self._run_callback(self._events[event]['callback'],
+                        data[i], **kwargs)
             else:
                 for r, d in self._raw_data.iteritems():
                     s = r.search(data[i])
                     if s:
-                        data[i] = self._parser(d, data[i])
-                        self._run_callback(d['callback'], data[i])
+                        data[i], kwargs = self._parser(d, data[i])
+                        self._run_callback(d['callback'], data[i], **kwargs)
                         break
 
             if self._debug:
@@ -154,8 +156,12 @@ class Manager(iostream.IOStream):
             data = Event(self._ami_id, dictionary['parser'](data))
         else:
             data = Event(self._ami_id, default_parser(data))
+        if  'kwargs' in dictionary:
+            kwargs = dictionary['kwargs']
+        else
+            kwargs = {}
 
-        return data
+        return data, kwargs
 
     def action(self, name, **kwargs):
         """This generic method execute actions and add action_id when detect
@@ -186,10 +192,15 @@ class Manager(iostream.IOStream):
         cmd += 'actionid: ' + actionid + EOL
 
         if callback is not None:
-            self._responses[actionid] = {'callback': callback}
-
-        if parser is not None:
-            self._responses[actionid]['parser'] = parser
+            cbt = type(callback).__name__
+            if cbt == 'function':
+                self._responses[actionid] = {'callback': callback}
+            elif cbt == 'dict' and 'callback' in callback:
+                self._responses[actionid] = {'callback': callback['callback']}
+                if 'parser' in callback:
+                    self._responses[actionid]['parser'] = callback['parser']
+                if 'kwargs' in callback:
+                    self._responses[actionid]['kwargs'] = callback['kwargs']
 
         if self._debug:
             print 'Command to execute:\r\n\r\n', cmd[:-2]
