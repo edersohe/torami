@@ -158,7 +158,7 @@ class Manager(iostream.IOStream):
             data = Event(self._ami_id, default_parser(data))
         if  'kwargs' in dictionary:
             kwargs = dictionary['kwargs']
-        else
+        else:
             kwargs = {}
 
         return data, kwargs
@@ -205,8 +205,7 @@ class Manager(iostream.IOStream):
         if self._debug:
             print 'Command to execute:\r\n\r\n', cmd[:-2]
 
-        self.write(cmd)
-        return actionid
+        self.io_loop.add_callback(lambda: self.write(cmd))
 
     def _read_events(self, data=""):
         """Intermediate method is calling after setup and recursive method"""
