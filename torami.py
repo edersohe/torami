@@ -242,7 +242,10 @@ class Collection(object):
     def get(self, ami_id):
         """Get the manager by asterisk id (file descriptor socket) """
 
-        return self._manager[ami_id]
+        if ami_id in self._manager:
+            return self._manager[ami_id]
+        return None
+
 
     def action(self, ami_id, name, **kwargs):
         """ Execute action for manager with ami_id """
