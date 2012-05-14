@@ -125,7 +125,6 @@ class Manager(iostream.IOStream):
         self._filter(data)
         self.read_until(EOL, self._read_events)
 
-
     def _filter(self, data):
         """ filter events or actionids and execute callback """
 
@@ -256,7 +255,6 @@ class Collection(object):
         if ami_id in self._manager:
             return self._manager[ami_id]
         return None
-
 
     def action(self, ami_id, name, **kwargs):
         """ Execute action for manager with ami_id """
