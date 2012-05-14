@@ -77,8 +77,9 @@ class Manager(iostream.IOStream):
     manager and hadle streams, reponses, execute actions and execute
     callbacks"""
 
-    def __init__(self, ami_id, address, port, events=None, raw_data=None,
-            debug=False, **kwargs):
+    def __init__(self, ami_id, address, port, username, secret,
+            events=None, raw_data=None, debug=False,
+            callback=None, **kwargs):
         """Initialize connecction to asterisk manager"""
 
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
@@ -87,6 +88,9 @@ class Manager(iostream.IOStream):
         self._raw_data = {}
         self._re_actionid = re.compile('ActionID: [a-zA-Z0-9_-]+')
         self._re_event = re.compile('Event: [a-zA-Z0-9_-]+')
+        self._callback = callback
+        self._username = username
+        self._secret = secret
 
         raw_data = raw_data if raw_data else {}
 
@@ -100,6 +104,12 @@ class Manager(iostream.IOStream):
         self._ami_id = ami_id
 
     def _on_connect(self):
+        if self._events != {}:
+            self.action('login', username=self._username, secret=self._secret,
+                callback=self._callback)
+        else:
+            self.action('login', username=self._username, secret=self._secret,
+                events='off', callback=self._callback)
         self.read_until(EOL, self._setup)
 
     @property
@@ -114,6 +124,7 @@ class Manager(iostream.IOStream):
         data = data[27:]
         self._filter(data)
         self.read_until(EOL, self._read_events)
+
 
     def _filter(self, data):
         """ filter events or actionids and execute callback """
@@ -223,12 +234,12 @@ class Collection(object):
 
         self._manager = {}
 
-    def add(self, ami_id, address, port, events=None, raw_data=None,
-            debug=False, **kwargs):
+    def add(self, ami_id, address, port, username, secret, events=None,
+            raw_data=None, debug=False, callback=None, **kwargs):
         """Add manager to collection"""
 
-        tmp = Manager(ami_id, address, port, events, raw_data, debug,
-            **kwargs)
+        tmp = Manager(ami_id, address, port, username, secret, events,
+            raw_data, debug, callback, **kwargs)
         self._manager[ami_id] = tmp
         return ami_id
 
