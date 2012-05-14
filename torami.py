@@ -238,16 +238,27 @@ class Collection(object):
     """This class help to handle multiple connections of asterisk manager
     like collection of objects"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, hosts=None, defaults={}):
         """Initialize collection"""
 
         self._manager = {}
+        self._defaults = defaults
+
+        if isinstance(hosts, list):
+            for i in xrange(0, len(hosts)):
+                self.add(hosts[i], **defaults)
+        elif isinstance(hosts, dict):
+            for k, v in hosts.iteritems():
+                _defaults = defaults
+                _defaults.update(v)
+                self.add(k, **_defaults)
 
     def add(self, address, **kwargs):
         """Add manager to collection"""
 
-        print kwargs
-        tmp = Manager(address, **kwargs)
+        _defaults = self._defaults
+        _defaults.update(kwargs)
+        tmp = Manager(address, **_defaults)
         self._manager[tmp.ami_id] = tmp
         return self._manager[tmp.ami_id]
 
