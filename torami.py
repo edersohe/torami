@@ -241,7 +241,7 @@ class Collection(object):
         tmp = Manager(ami_id, address, port, username, secret, events,
             raw_data, debug, callback, **kwargs)
         self._manager[ami_id] = tmp
-        return ami_id
+        return self._manager[ami_id]
 
     def remove(self, ami_id, callback=None):
         """Remove manager from collection"""
@@ -260,7 +260,7 @@ class Collection(object):
 
     def action(self, ami_id, name, **kwargs):
         """ Execute action for manager with ami_id """
-        return self._manager[ami_id].action(name, **kwargs)
+        self._manager[ami_id].action(name, **kwargs)
 
     def action_for_all(self, name, **kwargs):
         """Execute action for all managers in collection"""
