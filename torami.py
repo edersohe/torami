@@ -156,7 +156,7 @@ class Manager(iostream.IOStream):
                 event = self._re_event.search(data[i]).group()[7:]
                 if event in self._events:
                     data[i], kwargs = self._parser(self._events[event],
-                        self, data[i])
+                        data[i])
                     self._run_callback(self._events[event]['callback'],
                         self, data[i], **kwargs)
             else:
@@ -164,7 +164,8 @@ class Manager(iostream.IOStream):
                     s = r.search(data[i])
                     if s:
                         data[i], kwargs = self._parser(d, data[i])
-                        self._run_callback(d['callback'], data[i], **kwargs)
+                        self._run_callback(d['callback'], self, data[i],
+                            **kwargs)
                         break
 
             if self._debug:
@@ -211,6 +212,7 @@ class Manager(iostream.IOStream):
 
         cmd += 'actionid: ' + actionid + EOL
 
+        # TODO: var dict or var
         if callback is not None:
             cbt = type(callback).__name__
             if cbt == 'function':
