@@ -210,9 +210,12 @@ class Manager(iostream.IOStream):
         for k, v in kwargs.iteritems():
             cmd += k + ': ' + v + '\r\n'
 
+        if 'variable' in kwargs:
+            for k, v in kwargs['variable'].iteritems():
+                cmd += 'variable: ' + k + '=' + v + '\r\n'
+
         cmd += 'actionid: ' + actionid + EOL
 
-        # TODO: var dict or var
         if callback is not None:
             cbt = type(callback).__name__
             if cbt == 'function':
