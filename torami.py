@@ -78,24 +78,24 @@ class Manager(iostream.IOStream):
     callbacks"""
 
     def __init__(self, ami_id, address, port, username, secret,
-            events=None, raw_data=None, debug=False,
+            events=None, regexp=None, debug=False,
             callback=None, **kwargs):
         """Initialize connecction to asterisk manager"""
 
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._responses = {}
         self._events = events if events  else {}
-        self._raw_data = {}
+        self._regexp = {}
         self._re_actionid = re.compile('ActionID: [a-zA-Z0-9_-]+')
         self._re_event = re.compile('Event: [a-zA-Z0-9_-]+')
         self._callback = callback
         self._username = username
         self._secret = secret
 
-        raw_data = raw_data if raw_data else {}
+        regexp = regexp if regexp else {}
 
-        for k, v in raw_data.iteritems():
-            self._raw_data[re.compile(k)] = v
+        for k, v in regexp.iteritems():
+            self._regexp[re.compile(k)] = v
 
         self._debug = debug
 
@@ -151,7 +151,7 @@ class Manager(iostream.IOStream):
                     self._run_callback(self._events[event]['callback'],
                         data[i], **kwargs)
             else:
-                for r, d in self._raw_data.iteritems():
+                for r, d in self._regexp.iteritems():
                     s = r.search(data[i])
                     if s:
                         data[i], kwargs = self._parser(d, data[i])
@@ -235,11 +235,11 @@ class Collection(object):
         self._manager = {}
 
     def add(self, ami_id, address, port, username, secret, events=None,
-            raw_data=None, debug=False, callback=None, **kwargs):
+            regexp=None, debug=False, callback=None, **kwargs):
         """Add manager to collection"""
 
         tmp = Manager(ami_id, address, port, username, secret, events,
-            raw_data, debug, callback, **kwargs)
+            regexp, debug, callback, **kwargs)
         self._manager[ami_id] = tmp
         return self._manager[ami_id]
 
