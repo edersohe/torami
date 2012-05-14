@@ -77,9 +77,10 @@ class Manager(iostream.IOStream):
     manager and hadle streams, reponses, execute actions and execute
     callbacks"""
 
-    def __init__(self, ami_id, address, **kwargs):
+    def __init__(self, address, **kwargs):
         """Initialize connecction to asterisk manager
-            port, username, secret, events, regexp, debug, callback
+            port, username, secret, events, regexp, debug, callback,
+            'ami_id'
         """
         port = kwargs.get('port', 5038)
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
@@ -91,6 +92,7 @@ class Manager(iostream.IOStream):
         self._callback = kwargs.get('callback')
         self._username = kwargs.get('username', '')
         self._secret = kwargs.get('secret', '')
+        self._ami_id = kwargs.get('ami_id', address)
 
         regexp = kwargs.get('regexp', {})
 
@@ -106,10 +108,10 @@ class Manager(iostream.IOStream):
         if 'regexp' in kwargs: del kwargs['regexp']
         if 'debug' in kwargs: del kwargs['debug']
         if 'callback' in kwargs: del kwargs['callback']
+        if 'ami_id' in kwargs: del kwargs['ami_id']
 
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
-        self._ami_id = ami_id
 
     def _on_connect(self):
         if self._events != {}:
@@ -241,13 +243,13 @@ class Collection(object):
 
         self._manager = {}
 
-    def add(self, ami_id, address, **kwargs):
+    def add(self, address, **kwargs):
         """Add manager to collection"""
 
         print kwargs
-        tmp = Manager(ami_id, address, **kwargs)
-        self._manager[ami_id] = tmp
-        return self._manager[ami_id]
+        tmp = Manager(address, **kwargs)
+        self._manager[tmp.ami_id] = tmp
+        return self._manager[tmp.ami_id]
 
     def remove(self, ami_id, callback=None):
         """Remove manager from collection"""
