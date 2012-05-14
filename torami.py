@@ -150,15 +150,15 @@ class Manager(iostream.IOStream):
                     data[i], kwargs = self._parser(self._responses[actionid],
                         data[i])
                     self._run_callback(self._responses[actionid]['callback'],
-                        data[i], **kwargs)
+                        self, data[i], **kwargs)
                     del self._responses[actionid]
             elif 'Event: ' in data[i]:
                 event = self._re_event.search(data[i]).group()[7:]
                 if event in self._events:
                     data[i], kwargs = self._parser(self._events[event],
-                        data[i])
+                        self, data[i])
                     self._run_callback(self._events[event]['callback'],
-                        data[i], **kwargs)
+                        self, data[i], **kwargs)
             else:
                 for r, d in self._regexp.iteritems():
                     s = r.search(data[i])
@@ -238,27 +238,25 @@ class Collection(object):
     """This class help to handle multiple connections of asterisk manager
     like collection of objects"""
 
-    def __init__(self, hosts=None, defaults={}):
+    def __init__(self, hosts=None, defaults=None):
         """Initialize collection"""
 
         self._manager = {}
-        self._defaults = defaults
+        self._defaults = defaults if isinstance(defaults, dict) else {}
 
         if isinstance(hosts, list):
             for i in xrange(0, len(hosts)):
-                self.add(hosts[i], **defaults)
+                self.add(hosts[i])
         elif isinstance(hosts, dict):
             for k, v in hosts.iteritems():
-                _defaults = defaults
-                _defaults.update(v)
-                self.add(k, **_defaults)
+                self.add(k, **v)
 
     def add(self, address, **kwargs):
         """Add manager to collection"""
 
-        _defaults = self._defaults
-        _defaults.update(kwargs)
-        tmp = Manager(address, **_defaults)
+        defaults = self._defaults.copy()
+        defaults.update(kwargs)
+        tmp = Manager(address, **defaults)
         self._manager[tmp.ami_id] = tmp
         return self._manager[tmp.ami_id]
 
