@@ -77,27 +77,35 @@ class Manager(iostream.IOStream):
     manager and hadle streams, reponses, execute actions and execute
     callbacks"""
 
-    def __init__(self, ami_id, address, port, username, secret,
-            events=None, regexp=None, debug=False,
-            callback=None, **kwargs):
-        """Initialize connecction to asterisk manager"""
-
+    def __init__(self, ami_id, address, **kwargs):
+        """Initialize connecction to asterisk manager
+            port, username, secret, events, regexp, debug, callback
+        """
+        port = kwargs.get('port', 5038)
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._responses = {}
-        self._events = events if events  else {}
+        self._events = kwargs.get('events', {})
         self._regexp = {}
         self._re_actionid = re.compile('ActionID: [a-zA-Z0-9_-]+')
         self._re_event = re.compile('Event: [a-zA-Z0-9_-]+')
-        self._callback = callback
-        self._username = username
-        self._secret = secret
+        self._callback = kwargs.get('callback')
+        self._username = kwargs.get('username', '')
+        self._secret = kwargs.get('secret', '')
 
-        regexp = regexp if regexp else {}
+        regexp = kwargs.get('regexp', {})
 
         for k, v in regexp.iteritems():
             self._regexp[re.compile(k)] = v
 
-        self._debug = debug
+        self._debug = kwargs.get('debug', False)
+
+        if 'port' in kwargs: del kwargs['port']
+        if 'username' in kwargs: del kwargs['username']
+        if 'secret' in kwargs: del kwargs['secret']
+        if 'events' in kwargs: del kwargs['events']
+        if 'regexp' in kwargs: del kwargs['regexp']
+        if 'debug' in kwargs: del kwargs['debug']
+        if 'callback' in kwargs: del kwargs['callback']
 
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
@@ -228,17 +236,16 @@ class Collection(object):
     """This class help to handle multiple connections of asterisk manager
     like collection of objects"""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """Initialize collection"""
 
         self._manager = {}
 
-    def add(self, ami_id, address, port, username, secret, events=None,
-            regexp=None, debug=False, callback=None, **kwargs):
+    def add(self, ami_id, address, **kwargs):
         """Add manager to collection"""
 
-        tmp = Manager(ami_id, address, port, username, secret, events,
-            regexp, debug, callback, **kwargs)
+        print kwargs
+        tmp = Manager(ami_id, address, **kwargs)
         self._manager[ami_id] = tmp
         return self._manager[ami_id]
 
