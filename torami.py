@@ -80,7 +80,7 @@ class Manager(iostream.IOStream):
     def __init__(self, address, **kwargs):
         """Initialize connecction to asterisk manager
             port, username, secret, events, regexp, debug, callback,
-            'ami_id'
+            ami_id, _collection
         """
         port = kwargs.get('port', 5038)
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
@@ -93,6 +93,7 @@ class Manager(iostream.IOStream):
         self._username = kwargs.get('username', '')
         self._secret = kwargs.get('secret', '')
         self._ami_id = kwargs.get('ami_id', address)
+        self._collection = kwargs.get('_collection', None)
 
         regexp = kwargs.get('regexp', {})
 
@@ -109,6 +110,7 @@ class Manager(iostream.IOStream):
         if 'debug' in kwargs: del kwargs['debug']
         if 'callback' in kwargs: del kwargs['callback']
         if 'ami_id' in kwargs: del kwargs['ami_id']
+        if '_collection' in kwargs: del kwargs['_collection']
 
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
@@ -126,6 +128,11 @@ class Manager(iostream.IOStream):
     def ami_id(self):
         """Return the asterisk name"""
         return self._ami_id
+
+    @property
+    def collection(self):
+        """Return the collection reference"""
+        return self._collection
 
     def _setup(self, data):
         """The first time that stablish connection this method is calling
@@ -261,6 +268,7 @@ class Collection(object):
 
         defaults = self._defaults.copy()
         defaults.update(kwargs)
+        defaults.update({'_collection': self})
         tmp = Manager(address, **defaults)
         self._manager[tmp.ami_id] = tmp
         return self._manager[tmp.ami_id]
