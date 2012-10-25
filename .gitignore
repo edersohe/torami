@@ -1,6 +1,4 @@
-coverage.html
 .DS_Store
-lib-cov
 *.seed
 *.log
 *.csv
@@ -12,11 +10,4 @@ lib-cov
 *~
 *.pyo
 *.pyc
-node_modules/
-.coverage_data
-cover_html
-npm-debug.log
-build/
-torami.egg-info/
-dist/
 
