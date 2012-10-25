@@ -82,52 +82,22 @@ class Manager(iostream.IOStream):
             port, username, secret, events, regexp, debug, callback,
             ami_id, _collection
         """
-        port = kwargs.get('port', 5038)
+        port = kwargs.pop('port', 5038)
         sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._responses = {}
-        self._events = kwargs.get('events', {})
+        self._events = kwargs.pop('events', {})
         self._regexp = {}
         self._re_actionid = re.compile('ActionID: [a-zA-Z0-9_-]+')
         self._re_event = re.compile('Event: [a-zA-Z0-9_-]+')
-        self._callback = kwargs.get('callback')
-        self._username = kwargs.get('username', '')
-        self._secret = kwargs.get('secret', '')
-        self._ami_id = kwargs.get('ami_id', address)
-        self._collection = kwargs.get('_collection', None)
+        self._callback = kwargs.pop('callback')
+        self._username = kwargs.pop('username', '')
+        self._secret = kwargs.pop('secret', '')
+        self._ami_id = kwargs.pop('ami_id', address)
+        self._collection = kwargs.pop('_collection', None)
+        self._debug = kwargs.pop('debug', False)
 
-        regexp = kwargs.get('regexp', {})
-
-        for k, v in regexp.iteritems():
+        for k, v in kwargs.pop('regexp', {}).iteritems():
             self._regexp[re.compile(k)] = v
-
-        self._debug = kwargs.get('debug', False)
-
-        if 'port' in kwargs:
-            del kwargs['port']
-
-        if 'username' in kwargs:
-            del kwargs['username']
-
-        if 'secret' in kwargs:
-            del kwargs['secret']
-
-        if 'events' in kwargs:
-            del kwargs['events']
-
-        if 'regexp' in kwargs:
-            del kwargs['regexp']
-
-        if 'debug' in kwargs:
-            del kwargs['debug']
-
-        if 'callback' in kwargs:
-            del kwargs['callback']
-
-        if 'ami_id' in kwargs:
-            del kwargs['ami_id']
-
-        if '_collection' in kwargs:
-            del kwargs['_collection']
 
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
