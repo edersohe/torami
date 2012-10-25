@@ -69,7 +69,7 @@ class Event(object):
         try:
             return self._dictionary[self._dictionary_mapping[name]]
         except KeyError:
-            raise AttributeError, name + ' ' + self.json
+            raise AttributeError(name)
 
 
 class Manager(iostream.IOStream):
@@ -102,15 +102,32 @@ class Manager(iostream.IOStream):
 
         self._debug = kwargs.get('debug', False)
 
-        if 'port' in kwargs: del kwargs['port']
-        if 'username' in kwargs: del kwargs['username']
-        if 'secret' in kwargs: del kwargs['secret']
-        if 'events' in kwargs: del kwargs['events']
-        if 'regexp' in kwargs: del kwargs['regexp']
-        if 'debug' in kwargs: del kwargs['debug']
-        if 'callback' in kwargs: del kwargs['callback']
-        if 'ami_id' in kwargs: del kwargs['ami_id']
-        if '_collection' in kwargs: del kwargs['_collection']
+        if 'port' in kwargs:
+            del kwargs['port']
+
+        if 'username' in kwargs:
+            del kwargs['username']
+
+        if 'secret' in kwargs:
+            del kwargs['secret']
+
+        if 'events' in kwargs:
+            del kwargs['events']
+
+        if 'regexp' in kwargs:
+            del kwargs['regexp']
+
+        if 'debug' in kwargs:
+            del kwargs['debug']
+
+        if 'callback' in kwargs:
+            del kwargs['callback']
+
+        if 'ami_id' in kwargs:
+            del kwargs['ami_id']
+
+        if '_collection' in kwargs:
+            del kwargs['_collection']
 
         iostream.IOStream.__init__(self, sck, **kwargs)
         self.connect((address, port), self._on_connect)
@@ -118,10 +135,10 @@ class Manager(iostream.IOStream):
     def _on_connect(self):
         if self._events != {}:
             self.action('login', username=self._username, secret=self._secret,
-                callback=self._callback)
+                        callback=self._callback)
         else:
             self.action('login', username=self._username, secret=self._secret,
-                events='off', callback=self._callback)
+                        events='off', callback=self._callback)
         self.read_until(EOL, self._setup)
 
     @property
@@ -155,24 +172,24 @@ class Manager(iostream.IOStream):
                 actionid = self._re_actionid.search(data[i]).group()[10:]
                 if actionid in self._responses:
                     data[i], kwargs = self._parser(self._responses[actionid],
-                        data[i])
+                                                   data[i])
                     self._run_callback(self._responses[actionid]['callback'],
-                        self, data[i], **kwargs)
+                                       self, data[i], **kwargs)
                     del self._responses[actionid]
             elif 'Event: ' in data[i]:
                 event = self._re_event.search(data[i]).group()[7:]
                 if event in self._events:
                     data[i], kwargs = self._parser(self._events[event],
-                        data[i])
+                                                   data[i])
                     self._run_callback(self._events[event]['callback'],
-                        self, data[i], **kwargs)
+                                       self, data[i], **kwargs)
             else:
                 for r, d in self._regexp.iteritems():
                     s = r.search(data[i])
                     if s:
                         data[i], kwargs = self._parser(d, data[i])
                         self._run_callback(d['callback'], self, data[i],
-                            **kwargs)
+                                           **kwargs)
                         break
 
             if self._debug:
